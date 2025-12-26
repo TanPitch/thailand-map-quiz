@@ -7,11 +7,13 @@ const config = {
 };
 let quizState = {
     score: 0,
+    timer: 0,
     targetName: null,
     targetProv: null,
     answered: 0,
 };
-let questionPool
+let questionPool;
+let game_timer = null;
 
 export function switchMode(mode) {
     currentMode = mode;
@@ -49,8 +51,8 @@ function resetQuizState() {
     document.getElementById("q-score").innerText = "0";
 }
 
-function mapOnlySelect () {
-    const selectedProv = [...new Set(questionPool.map(el => el.prov))]
+function mapOnlySelect() {
+    const selectedProv = [...new Set(questionPool.map((el) => el.prov))];
     allAmphoeList.forEach((item) => {
         if (selectedProv.includes(item.prov)) {
             item.layer.setStyle({
@@ -72,6 +74,7 @@ function mapOnlySelect () {
 export function nextQuestion() {
     // Reset
     quizState.answered = 0;
+    quizState.timer = 0;
     document.getElementById("q-next-btn").style.display = "none";
     document.getElementById("q-hint").innerText = "";
     geoJsonLayer.resetStyle();
@@ -89,7 +92,7 @@ export function nextQuestion() {
     if (questionPool.length === 0) {
         // Fallback if nothing selected
         questionPool = allAmphoeList;
-        showToast("ไม่ได้เลือกจังหวัด จะเลือกทุกจังหวัดให้", "error")
+        showToast("ไม่ได้เลือกจังหวัด จะเลือกทุกจังหวัดให้", "error");
     }
 
     mapOnlySelect();
@@ -103,17 +106,26 @@ export function nextQuestion() {
 
     // Render Question
     document.getElementById("q-text").innerText = target.name;
+
+    // Timer
+    game_timer = setInterval(() => {
+        quizState.timer += 100;
+        document.querySelector("#q-timer").textContent = `${(quizState.timer / 1000).toFixed(1)} sec`;
+    }, 100);
 }
 
 export function checkQuizAnswer(clickedName, clickedProv, layer) {
     if (quizState.answered > config.anstolerate) return;
 
+    const score = ((300000 - quizState.timer) * Math.max(0, config.anstolerate - quizState.answered + 1) / 10000).toFixed(1);
+
     if (clickedName === quizState.targetName) {
         // Correct!
         layer.setStyle({ color: "white", weight: 2, fillColor: "var(--success)", fillOpacity: 0.8 });
-        quizState.score += 10;
+        quizState.score += Number(score);
+        clearInterval(game_timer)
         document.getElementById("q-score").innerText = quizState.score;
-        showToast("ถูกต้อง! +10", "success");
+        showToast(`ถูกต้อง! +${score}`, "success");
 
         // Zoom in to confirm
         map.fitBounds(layer.getBounds());
@@ -138,11 +150,11 @@ export function checkQuizAnswer(clickedName, clickedProv, layer) {
         highlightAmphoe(targetLayer, quizState.targetName, quizState.targetProv, false);
         mapOnlySelect();
         showToast(`นี่คือ ${quizState.targetName} ${quizState.targetProv}`, "success");
+        clearInterval(game_timer)
     }
 }
 
 document.addEventListener("sidebarRendered", () => {
-
     // check all
     document.getElementById("check-all-prov").addEventListener("change", function (e) {
         const isChecked = e.target.checked;
