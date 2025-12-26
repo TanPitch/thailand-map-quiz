@@ -117,7 +117,7 @@ export function nextQuestion() {
 export function checkQuizAnswer(clickedName, clickedProv, layer) {
     if (quizState.answered > config.anstolerate) return;
 
-    const score = ((300000 - quizState.timer) * Math.max(0, config.anstolerate - quizState.answered + 1) / 10000).toFixed(1);
+    const score = Math.round((300000 - quizState.timer) * Math.max(0, config.anstolerate - quizState.answered + 1) / 1000) / 10;
 
     if (clickedName === quizState.targetName) {
         // Correct!
@@ -171,3 +171,4 @@ document.addEventListener("sidebarRendered", () => {
         });
     });
 });
+
